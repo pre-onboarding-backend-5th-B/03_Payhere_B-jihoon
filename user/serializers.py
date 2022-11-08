@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from .models import User
-
+from moneybook.models import MoneyBook
 
 class UserSerializer(serializers.ModelSerializer):
 
@@ -18,4 +18,7 @@ class UserSerializer(serializers.ModelSerializer):
         )
         user.set_password(password)
         user.save()
+
+        user_moneybook = MoneyBook.objects.create(user=user)
+        user_moneybook.save()
         return user
