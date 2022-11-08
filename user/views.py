@@ -7,6 +7,7 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 # Create your views here.
 from .models import User
 from .serializers import UserSerializer
+from moneybook.serializers import MoneyBookSerializer
 
 
 class SignUpView(APIView):
@@ -21,6 +22,8 @@ class SignUpView(APIView):
         serializer = UserSerializer(data=data)
         if serializer.is_valid(raise_exception=True):
             user = serializer.save()
+            
+            # token
             token = TokenObtainPairSerializer.get_token(user)
             refresh_token = str(token)
             access_token = str(token.access_token)
