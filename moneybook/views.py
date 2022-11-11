@@ -52,10 +52,29 @@ class MoneyBookLogDetailAPIView(APIView):
         user_moneybook_log = MoneyBookLog.objects.get(
             moneybook=user_moneybook, log_id=log_id
         )
-        return Response(
-            {
-                "msg": request.user.name,
-                "log": MoneyBookLogReadSerializer(user_moneybook_log).data,
-            },
-            status=status.HTTP_200_OK,
+        if user_moneybook_log.is_active:
+            return Response(
+                {
+                    "msg": request.user.name,
+                    "log": MoneyBookLogReadSerializer(user_moneybook_log).data,
+                },
+                status=status.HTTP_200_OK,
+            )
+        return Response({"msg":"this log is not activated"}, status=status.HTTP_403_FORBIDDEN)
+    # 수정과 삭제(실제 METHOD는 PUT 이지만 is_active 를 수정해 접근 못하도록 구현)기능.
+    def put(self, request, log_id):
+        user_id = request.user.id
+        user_moneybook = MoneyBook.objects.get(user=user_id)
+        user_moneybook_log = MoneyBookLog.objects.get(
+            moneybook=user_moneybook, log_id=log_id
         )
+        # 해당 로그가 is_active = True 일때만 수정.
+        if user_moneybook_log.is_active:
+            serializer = MoneyBookLogCreateSerializer(user_moneybook_log, data=request.data, partial=True)
+
+            if serializer.is_valid(raise_exception=True):
+                serializer.save()
+                return Response({"msg":"success",
+                                "log":serializer.data},
+                                status=status.HTTP_200_OK)
+        return Response({"msg":"this log is not activated"}, status=status.HTTP_403_FORBIDDEN)
