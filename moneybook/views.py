@@ -44,6 +44,7 @@ class MoneyBookLogAPIView(APIView):
 
 
 class MoneyBookLogDetailAPIView(APIView):
+# 가계부 기록 상세조회(GET), 기록 수정(PUT)
     permission_classes = [IsAuthenticated]
 
     def get(self, request, log_id):
@@ -77,4 +78,34 @@ class MoneyBookLogDetailAPIView(APIView):
                 return Response({"msg":"success",
                                 "log":serializer.data},
                                 status=status.HTTP_200_OK)
-        return Response({"msg":"this log is not activated"}, status=status.HTTP_403_FORBIDDEN)
+        return Response({"msg":"this log is not activated"}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class RestoreMoneyBookLogAPIView(APIView):
+# 삭제처리된 가계부 기록 조회(GET)
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user_id = request.user.id
+        user_moneybook = MoneyBook.objects.get(user=user_id)
+        user_moneybook_log = MoneyBookLog.objects.filter(
+            moneybook=user_moneybook, is_active=False
+        )
+        return Response(MoneyBookLogReadSerializer(user_moneybook_log, many=True).data, status=status.HTTP_200_OK)
+
+class RestoreMoneyBookLogDetailAPIView(APIView):
+# 삭제처리된 해당 기록 복구(PATHCH)
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, log_id):
+        user_id = request.user.id
+        user_moneybook = MoneyBook.objects.get(user=user_id)
+        user_moneybook_log = MoneyBookLog.objects.get(
+            moneybook=user_moneybook, log_id=log_id
+        )
+        if user_moneybook_log.is_active == False:
+            serializer = MoneyBookLogCreateSerializer(user_moneybook_log, data=request.data, partial=True)
+            if serializer.is_valid(raise_exception=True):
+                serializer.save()
+                return Response({"msg":"success","log":serializer.data}, status=status.HTTP_200_OK)
+        return Response({"msg":"this log is already activate"}, status=status.HTTP_400_BAD_REQUEST)
